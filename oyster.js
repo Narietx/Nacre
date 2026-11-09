@@ -4,7 +4,8 @@ const defaultState = {
   stats: { hunger:5, wellbeing:5, moisture:5, affection:5, calm:5 },
   growth: 0,
   lastUpdated: Date.now(),
-  pearls: []
+  pearls: [],
+  lastCare: {}
 };
 
 const reactions = {
@@ -64,6 +65,10 @@ const traitPools = {
   nacreThickness: [
     ["Thin",9],["Moderate",27],["Thick",34],["Very Thick",22],["Exceptional",8]
   ],
+  color: [
+    ["Ivory",24],["Cream",18],["Blush",17],["Silver",14],["Rose",10],
+    ["Lavender",8],["Gold",5],["Peacock",3],["Midnight",1]
+  ],
   surfaceQuality: [
     ["Heavily Marked",7],["Marked",18],["Minor Blemishes",31],["Clean",27],["Very Clean",14],["Flawless",3]
   ]
@@ -79,25 +84,32 @@ function load(){
     return {
       ...structuredClone(defaultState), ...s,
       stats:{...defaultState.stats,...(s.stats||{})},
-      pearls:Array.isArray(s.pearls)?s.pearls:[]
+      pearls:Array.isArray(s.pearls)?s.pearls:[],
+      lastCare:s.lastCare && typeof s.lastCare === "object" ? s.lastCare : {}
     };
   }catch(e){ return structuredClone(defaultState); }
 }
 
 function save(){ state.lastUpdated=Date.now(); localStorage.setItem(KEY,JSON.stringify(state)); }
 
+// Each care action can improve stats once per two hours. Repeated clicks
+// still receive a reaction but cannot accelerate growth or stack care.
+const CARE_COOLDOWN_MS = 2 * 60 * 60 * 1000;
+
 function applyTimeDecay(){
   const now=Date.now();
   const hours=Math.max(0,(now-(state.lastUpdated||now))/3600000);
-  if(hours<0.01)return;
-  state.stats.hunger=Math.max(0,state.stats.hunger-Math.floor(hours/6));
-  state.stats.moisture=Math.max(0,state.stats.moisture-Math.floor(hours/8));
-  state.stats.wellbeing=Math.max(0,state.stats.wellbeing-Math.floor(hours/12));
-  state.stats.affection=Math.max(0,state.stats.affection-Math.floor(hours/36));
-  state.stats.calm=Math.max(0,state.stats.calm-Math.floor(hours/18));
+  if(hours<=0)return;
+  // Fractional decay is preserved across page loads and interactions.
+  // This prevents frequent visits from resetting the decay clock.
+  state.stats.hunger=Math.max(0,state.stats.hunger-hours/6);
+  state.stats.moisture=Math.max(0,state.stats.moisture-hours/8);
+  state.stats.wellbeing=Math.max(0,state.stats.wellbeing-hours/12);
+  state.stats.affection=Math.max(0,state.stats.affection-hours/36);
+  state.stats.calm=Math.max(0,state.stats.calm-hours/18);
   const care=Object.values(state.stats).reduce((a,b)=>a+b,0)/25;
+  // Growth depends on elapsed real time, never the number of button presses.
   state.growth=Math.min(100,state.growth + hours*(0.65 + care*0.9));
-  state.lastUpdated=now;
   save();
 }
 
@@ -132,7 +144,8 @@ function harvestPearl(){
     shape:choose(traitPools.shape,bonus),
     luster:choose(traitPools.luster,bonus),
     nacreThickness:choose(traitPools.nacreThickness,bonus),
-    surfaceQuality:choose(traitPools.surfaceQuality,bonus)
+    surfaceQuality:choose(traitPools.surfaceQuality,bonus),
+    color:choose(traitPools.color,bonus)
   };
   state.pearls.unshift(pearl);
   state.growth=0;
@@ -143,6 +156,25 @@ function harvestPearl(){
 
 function interact(action){
   applyTimeDecay();
+  if(action==="inspect"){
+    if(state.growth>=100){
+      const pearl=harvestPearl();
+      reactionText.textContent=`You found a ${pearl.color.toLowerCase()} pearl: ${pearl.size}, ${pearl.shape}, ${pearl.luster} luster, ${pearl.nacreThickness} nacre, ${pearl.surfaceQuality}.`;
+      save(); render(); return;
+    }
+    reactionText.textContent=reactions.inspect[Math.floor(Math.random()*reactions.inspect.length)];
+    render(); return;
+  }
+  if(!Object.hasOwn(reactions,action))return;
+  const now=Date.now();
+  const previous=Number(state.lastCare[action])||0;
+  const remaining=CARE_COOLDOWN_MS-(now-previous);
+  if(remaining>0){
+    const minutes=Math.ceil(remaining/60000);
+    const duration=minutes>=60?`${Math.ceil(minutes/60)} hour${Math.ceil(minutes/60)===1?"":"s"}`:`${minutes} minute${minutes===1?"":"s"}`;
+    reactionText.textContent=`The oyster has had enough of that for now. Try again in about ${duration}.`;
+    render(); return;
+  }
   if(action==="feed"){
     state.stats.hunger=clamp(state.stats.hunger+2);
     state.stats.wellbeing=clamp(state.stats.wellbeing+.25);
@@ -159,20 +191,14 @@ function interact(action){
   } else if(action==="rest"){
     state.stats.calm=clamp(state.stats.calm+1);
     state.stats.wellbeing=clamp(state.stats.wellbeing+.5);
-  } else if(action==="inspect"){
-    if(state.growth>=100){
-      const pearl=harvestPearl();
-      reactionText.textContent=`You found a pearl: ${pearl.size}, ${pearl.shape}, ${pearl.luster} luster, ${pearl.nacreThickness} nacre, ${pearl.surfaceQuality}.`;
-      render(); save(); return;
-    }
   }
+  state.lastCare[action]=now;
   reactionText.textContent=reactions[action][Math.floor(Math.random()*reactions[action].length)];
-  state.growth=Math.min(100,state.growth + (action==="rest"?1.5:0.7));
   save(); render();
 }
 
 function render(){
-  stats.innerHTML=statNames.map(([key,label])=>`<div class="stat"><b>${state.stats[key].toFixed(1)}</b><span>${label}</span></div>`).join("");
+  stats.innerHTML=statNames.map(([key,label])=>`<div class="stat"><b>${Number(state.stats[key]).toFixed(1)}</b><span>${label}</span></div>`).join("");
   growthText.textContent=`${Math.floor(state.growth)}%`;
   growthBar.style.width=`${state.growth}%`;
   pearlCount.textContent=`${state.pearls.length} ${state.pearls.length===1?"pearl":"pearls"}`;
@@ -197,6 +223,7 @@ function renderCollection(){
     <article class="pearl-card">
       <div class="pearl-date">Pearl ${state.pearls.length-i} · ${new Date(p.harvestedAt).toLocaleString()}</div>
       <div class="traits">
+        <div class="trait"><small>Color</small><b>${p.color || "Unrecorded"}</b></div>
         <div class="trait"><small>Size</small><b>${p.size} · ${p.sizeMm} mm</b></div>
         <div class="trait"><small>Shape</small><b>${p.shape}</b></div>
         <div class="trait"><small>Luster</small><b>${p.luster}</b></div>
