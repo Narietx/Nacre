@@ -74,6 +74,16 @@ const traitPools = {
   ]
 };
 
+const ui = {
+  reactionText: document.getElementById("reactionText"),
+  stats: document.getElementById("stats"),
+  growthText: document.getElementById("growthText"),
+  growthBar: document.getElementById("growthBar"),
+  pearlCount: document.getElementById("pearlCount"),
+  collectionSummary: document.getElementById("collectionSummary"),
+  ledger: document.getElementById("ledger")
+};
+const VERSION = "Nacre 1.6 · color + timed care";
 let state = load();
 
 function load(){
@@ -137,7 +147,7 @@ function harvestPearl(){
   const bonus=(care-.5)*1.8;
   const size=choose(traitPools.size,bonus);
   const pearl={
-    id:crypto.randomUUID?.()||String(Date.now()+Math.random()),
+    id:(typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") ? crypto.randomUUID() : String(Date.now()+Math.random()),
     harvestedAt:new Date().toISOString(),
     size:size,
     sizeMm:Math.round(sizeMm(size)*10)/10,
@@ -159,20 +169,27 @@ function interact(action){
   if(action==="inspect"){
     if(state.growth>=100){
       const pearl=harvestPearl();
-      reactionText.textContent=`You found a ${pearl.color.toLowerCase()} pearl: ${pearl.size}, ${pearl.shape}, ${pearl.luster} luster, ${pearl.nacreThickness} nacre, ${pearl.surfaceQuality}.`;
+      ui.reactionText.textContent=`You found a ${pearl.color.toLowerCase()} pearl: ${pearl.size}, ${pearl.shape}, ${pearl.luster} luster, ${pearl.nacreThickness} nacre, ${pearl.surfaceQuality}.`;
       save(); render(); return;
     }
-    reactionText.textContent=reactions.inspect[Math.floor(Math.random()*reactions.inspect.length)];
+    ui.reactionText.textContent=reactions.inspect[Math.floor(Math.random()*reactions.inspect.length)];
     render(); return;
   }
-  if(!Object.hasOwn(reactions,action))return;
+  if(!Object.prototype.hasOwnProperty.call(reactions,action))return;
   const now=Date.now();
+  // Recheck persisted cooldown in case another tab used this action.
+  try {
+    const stored=JSON.parse(localStorage.getItem(KEY) || "{}");
+    if(stored.lastCare && Number(stored.lastCare[action]) > Number(state.lastCare[action] || 0)) {
+      state.lastCare[action]=Number(stored.lastCare[action]);
+    }
+  } catch(e) {}
   const previous=Number(state.lastCare[action])||0;
   const remaining=CARE_COOLDOWN_MS-(now-previous);
   if(remaining>0){
     const minutes=Math.ceil(remaining/60000);
     const duration=minutes>=60?`${Math.ceil(minutes/60)} hour${Math.ceil(minutes/60)===1?"":"s"}`:`${minutes} minute${minutes===1?"":"s"}`;
-    reactionText.textContent=`The oyster has had enough of that for now. Try again in about ${duration}.`;
+    ui.reactionText.textContent=`The oyster has had enough of that for now. Try again in about ${duration}.`;
     render(); return;
   }
   if(action==="feed"){
@@ -193,33 +210,43 @@ function interact(action){
     state.stats.wellbeing=clamp(state.stats.wellbeing+.5);
   }
   state.lastCare[action]=now;
-  reactionText.textContent=reactions[action][Math.floor(Math.random()*reactions[action].length)];
+  ui.reactionText.textContent=reactions[action][Math.floor(Math.random()*reactions[action].length)];
   save(); render();
 }
 
 function render(){
-  stats.innerHTML=statNames.map(([key,label])=>`<div class="stat"><b>${Number(state.stats[key]).toFixed(1)}</b><span>${label}</span></div>`).join("");
-  growthText.textContent=`${Math.floor(state.growth)}%`;
-  growthBar.style.width=`${state.growth}%`;
-  pearlCount.textContent=`${state.pearls.length} ${state.pearls.length===1?"pearl":"pearls"}`;
+  ui.stats.innerHTML=statNames.map(([key,label])=>`<div class="stat"><b>${Number(state.stats[key]).toFixed(1)}</b><span>${label}</span></div>`).join("");
+  ui.growthText.textContent=`${Math.floor(state.growth)}%`;
+  ui.growthBar.style.width=`${state.growth}%`;
+  ui.pearlCount.textContent=`${state.pearls.length} ${state.pearls.length===1?"pearl":"pearls"}`;
   renderCollection();
+  document.querySelectorAll("[data-action]").forEach(btn => {
+    if(btn.dataset.action === "inspect") return;
+    const previous = Number(state.lastCare[btn.dataset.action]) || 0;
+    const remaining = Math.max(0, CARE_COOLDOWN_MS - (Date.now() - previous));
+    btn.disabled = remaining > 0;
+    btn.title = remaining > 0 ? `Care available in ${Math.ceil(remaining/60000)} minutes` : "Care available";
+    btn.setAttribute("aria-label", remaining > 0 ? `${btn.dataset.action}, care available in ${Math.ceil(remaining/60000)} minutes` : btn.dataset.action);
+  });
 }
 
 function renderCollection(){
   if(!state.pearls.length){
-    collectionSummary.innerHTML="";
-    ledger.innerHTML='<div class="empty">No pearls harvested yet. The first one is still forming.</div>';
+    ui.collectionSummary.innerHTML="";
+    ui.ledger.innerHTML='<div class="empty">No pearls harvested yet. The first one is still forming.</div>';
     return;
   }
   const largest=state.pearls.reduce((a,b)=>b.sizeMm>a.sizeMm?b:a);
   const lusterRank={"Soft":0,"Fair":1,"Good":2,"Very Good":3,"Excellent":4,"Mirror":5};
   const bestLuster=state.pearls.reduce((a,b)=>lusterRank[b.luster]>lusterRank[a.luster]?b:a);
   const shapes=new Set(state.pearls.map(p=>p.shape)).size;
-  collectionSummary.innerHTML=`
+  const colors=new Set(state.pearls.filter(p=>p.color).map(p=>p.color)).size;
+  ui.collectionSummary.innerHTML=`
     <div class="mini">Largest<b>${largest.sizeMm} mm</b></div>
     <div class="mini">Best luster<b>${bestLuster.luster}</b></div>
-    <div class="mini">Shapes found<b>${shapes}</b></div>`;
-  ledger.innerHTML=state.pearls.map((p,i)=>`
+    <div class="mini">Shapes found<b>${shapes}</b></div>
+    <div class="mini">Colors found<b>${colors}</b></div>`;
+  ui.ledger.innerHTML=state.pearls.map((p,i)=>`
     <article class="pearl-card">
       <div class="pearl-date">Pearl ${state.pearls.length-i} · ${new Date(p.harvestedAt).toLocaleString()}</div>
       <div class="traits">
@@ -235,6 +262,12 @@ function renderCollection(){
 
 applyTimeDecay();
 render();
+const versionLabel = document.createElement("small");
+versionLabel.textContent = VERSION;
+versionLabel.style.cssText = "display:block;text-align:center;color:#8d8a9c;font:10px system-ui,sans-serif;margin:10px 0";
+document.querySelector("footer")?.append(versionLabel);
+// Refresh cooldown availability without granting care or growth.
+setInterval(() => render(), 60000);
 
 document.querySelectorAll("[data-action]").forEach(btn=>{
   btn.addEventListener("click",()=>interact(btn.dataset.action));
