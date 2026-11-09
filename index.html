@@ -1,69 +1,71 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Nacre — The Pearl Oyster</title>
-<link rel="stylesheet" href="style.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Nacre — The Pearl Oyster</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<main class="shell">
-  <header>
-    <div class="eyebrow">NACRE · PRIVATE COTTAGE</div>
-    <h1>The Pearl Oyster</h1>
-    <p class="sub">A small living thing beneath the water.</p>
-  </header>
-
-  <section class="scene" aria-label="Pearl oyster">
-    <div class="moon"></div>
-    <div class="water-glow"></div>
-    <div class="oyster" aria-hidden="true">
-      <div class="shell-top"></div>
-      <div class="shell-bottom"></div>
-      <div class="pearl" id="pearlOrb"></div>
-    </div>
-    <div class="ripples"></div>
-  </section>
-
-  <section class="panel">
-    <div class="status-row">
+  <main class="shell">
+    <header>
       <div>
-        <span class="label">Pearl growth</span>
-        <strong id="growthText">0%</strong>
+        <p class="eyebrow">NACRE</p>
+        <h1>The Pearl Oyster</h1>
+        <p class="subtitle">A small creature beneath the water, quietly making something of its own.</p>
       </div>
-      <div class="pearl-kind" id="pearlKind">Unformed</div>
-    </div>
-    <div class="bar"><div id="growthBar"></div></div>
+      <div class="moon" aria-hidden="true">☾</div>
+    </header>
 
-    <div class="stats" id="stats"></div>
-
-    <div class="actions" aria-label="Care actions">
-      <button data-action="feed">Feed</button>
-      <button data-action="moisten">Moisten</button>
-      <button data-action="pet">Pet</button>
-      <button data-action="sing">Sing to it</button>
-      <button data-action="rest">Let it Rest</button>
-      <button data-action="inspect">Inspect Pearl</button>
-    </div>
-
-    <p class="message" id="message" role="status">The oyster rests quietly.</p>
-  </section>
-
-  <section class="history panel">
-    <div class="status-row">
-      <div>
-        <span class="label">Pearl ledger</span>
-        <h2>Harvested pearls</h2>
+    <section class="oyster-room">
+      <div class="water-glow"></div>
+      <div class="oyster" aria-label="A magical oyster">
+        <div class="shell shell-top"></div>
+        <div class="shell shell-bottom"></div>
+        <div class="pearl-orb" id="pearlOrb"></div>
       </div>
-      <span class="count" id="pearlCount">0</span>
-    </div>
-    <div id="historyList" class="history-list">
-      <p class="empty">No pearls have been harvested yet.</p>
-    </div>
-  </section>
+      <p id="moodText" class="mood">The oyster is resting quietly.</p>
+    </section>
 
-  <footer>NACRE · The year is turning.</footer>
-</main>
-<script src="oyster.js"></script>
+    <section class="panel">
+      <div class="section-heading">
+        <h2>Care</h2>
+        <span id="lastUpdated">—</span>
+      </div>
+      <div class="stats" id="stats"></div>
+      <div class="actions">
+        <button data-action="feed">Feed</button>
+        <button data-action="moisten">Moisten</button>
+        <button data-action="pet">Pet</button>
+        <button data-action="sing">Sing to it</button>
+        <button data-action="rest">Let it Rest</button>
+      </div>
+    </section>
+
+    <section class="panel pearl-panel">
+      <div class="section-heading">
+        <h2>Current Pearl</h2>
+        <span id="growthText">0%</span>
+      </div>
+      <div class="growth-track"><div id="growthBar"></div></div>
+      <p id="pearlStatus">Something is forming in the dark.</p>
+      <button id="harvestButton" class="harvest" disabled>Inspect Pearl</button>
+      <div id="currentPearl" class="pearl-card hidden"></div>
+    </section>
+
+    <section class="panel collection-panel">
+      <div class="section-heading">
+        <h2>Pearl Collection</h2>
+        <span id="collectionCount">0 pearls</span>
+      </div>
+      <div id="collectionSummary" class="collection-summary"></div>
+      <div id="collection" class="collection"></div>
+    </section>
+
+    <footer>
+      <span>Nacre</span><span>•</span><span>Your little oyster remembers.</span>
+    </footer>
+  </main>
+  <script src="oyster.js"></script>
 </body>
 </html>
