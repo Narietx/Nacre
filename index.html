@@ -2,69 +2,62 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Nacre — The Pearl Oyster</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <main class="shell">
     <header>
-      <div>
-        <p class="eyebrow">NACRE</p>
-        <h1>The Pearl Oyster</h1>
-        <p class="subtitle">A small creature beneath the water, quietly making something of its own.</p>
-      </div>
-      <div class="moon" aria-hidden="true">☾</div>
+      <p class="eyebrow">NACRE</p>
+      <h1>The Pearl Oyster</h1>
+      <p class="subtitle">A small creature in a quiet place.</p>
     </header>
 
-    <section class="oyster-room">
-      <div class="water-glow"></div>
-      <div class="oyster" aria-label="A magical oyster">
-        <div class="shell shell-top"></div>
-        <div class="shell shell-bottom"></div>
-        <div class="pearl-orb" id="pearlOrb"></div>
+    <section class="tank" aria-label="Oyster">
+      <div class="moon"></div>
+      <div class="water">
+        <div class="oyster" id="oyster" aria-label="Magical oyster">
+          <div class="shell shell-back"></div>
+          <div class="pearl" id="pearl"></div>
+          <div class="shell shell-front"></div>
+        </div>
       </div>
-      <p id="moodText" class="mood">The oyster is resting quietly.</p>
     </section>
 
-    <section class="panel">
+    <section class="reaction" aria-live="polite">
+      <span id="reactionText">The oyster rests quietly beneath the water.</span>
+    </section>
+
+    <section class="stats" id="stats"></section>
+
+    <section class="growth">
+      <div class="row"><span>Pearl forming</span><strong id="growthText">0%</strong></div>
+      <div class="bar"><div id="growthBar"></div></div>
+    </section>
+
+    <section class="actions">
+      <button data-action="feed">Feed</button>
+      <button data-action="moisten">Moisten</button>
+      <button data-action="pet">Pet</button>
+      <button data-action="sing">Sing to it</button>
+      <button data-action="rest">Let it Rest</button>
+      <button class="primary" data-action="inspect">Inspect Pearl</button>
+    </section>
+
+    <section class="collection">
       <div class="section-heading">
-        <h2>Care</h2>
-        <span id="lastUpdated">—</span>
+        <div>
+          <p class="eyebrow">THE LEDGER</p>
+          <h2>Pearl Collection</h2>
+        </div>
+        <strong id="pearlCount">0 pearls</strong>
       </div>
-      <div class="stats" id="stats"></div>
-      <div class="actions">
-        <button data-action="feed">Feed</button>
-        <button data-action="moisten">Moisten</button>
-        <button data-action="pet">Pet</button>
-        <button data-action="sing">Sing to it</button>
-        <button data-action="rest">Let it Rest</button>
-      </div>
+      <div class="collection-summary" id="collectionSummary"></div>
+      <div id="ledger"></div>
     </section>
 
-    <section class="panel pearl-panel">
-      <div class="section-heading">
-        <h2>Current Pearl</h2>
-        <span id="growthText">0%</span>
-      </div>
-      <div class="growth-track"><div id="growthBar"></div></div>
-      <p id="pearlStatus">Something is forming in the dark.</p>
-      <button id="harvestButton" class="harvest" disabled>Inspect Pearl</button>
-      <div id="currentPearl" class="pearl-card hidden"></div>
-    </section>
-
-    <section class="panel collection-panel">
-      <div class="section-heading">
-        <h2>Pearl Collection</h2>
-        <span id="collectionCount">0 pearls</span>
-      </div>
-      <div id="collectionSummary" class="collection-summary"></div>
-      <div id="collection" class="collection"></div>
-    </section>
-
-    <footer>
-      <span>Nacre</span><span>•</span><span>Your little oyster remembers.</span>
-    </footer>
+    <footer>Nacre keeps its little world in this browser.</footer>
   </main>
   <script src="oyster.js"></script>
 </body>
